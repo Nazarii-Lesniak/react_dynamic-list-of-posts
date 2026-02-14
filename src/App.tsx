@@ -16,13 +16,25 @@ import { client } from './utils/fetchClient';
 import { User } from './types/User';
 import { Post } from './types/Post';
 
+interface PostsState {
+  items: Post[];
+  isLoading: boolean;
+  hasError: boolean;
+}
+
 export const App = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const [hasUsersError, setHasUsersError] = useState<boolean>(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [postsState, setPostsState] = useState<PostsState>({
+    items: [],
+    isLoading: false,
+    hasError: false,
+  });
+
+  const { items: posts, isLoading, hasError: hasPostsError } = postsState;
 
   const selectedPost = posts.find(post => post.id === selectedPostId);
 
@@ -33,7 +45,7 @@ export const App = () => {
 
         setUsers(dataUsers);
       } catch (error) {
-        setHasError(true);
+        setHasUsersError(true);
       }
     };
 
@@ -41,13 +53,15 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedUserId) {
+    if (hasUsersError || selectedUserId === null) {
       return;
     }
 
-    setIsLoading(true);
-    setPosts([]);
-    setHasError(false);
+    setPostsState({
+      items: [],
+      isLoading: true,
+      hasError: false,
+    });
 
     const fetchPosts = async () => {
       try {
@@ -55,17 +69,22 @@ export const App = () => {
           `/posts?userId=${selectedUserId}`,
         );
 
-        setPosts(dataPosts);
-        setIsLoading(false);
+        setPostsState({
+          items: dataPosts,
+          isLoading: false,
+          hasError: false,
+        });
       } catch {
-        setHasError(true);
-      } finally {
-        setIsLoading(false);
+        setPostsState({
+          items: [],
+          isLoading: false,
+          hasError: true,
+        });
       }
     };
 
     fetchPosts();
-  }, [selectedUserId]);
+  }, [hasUsersError, selectedUserId]);
 
   const handleUserSelect = (userId: number) => {
     setSelectedUserId(userId);
@@ -77,7 +96,10 @@ export const App = () => {
   };
 
   const shouldShowNoPosts =
-    selectedUserId && !isLoading && !hasError && posts.length === 0;
+    selectedUserId !== null &&
+    !isLoading &&
+    !hasPostsError &&
+    posts.length === 0;
 
   const shouldShowPosts = posts.length > 0;
 
@@ -96,13 +118,13 @@ export const App = () => {
               </div>
 
               <div className="block" data-cy="MainContent">
-                {!selectedUserId && (
+                {selectedUserId === null && (
                   <p data-cy="NoSelectedUser">No user selected</p>
                 )}
 
                 {isLoading && <Loader />}
 
-                {hasError && (
+                {hasPostsError && (
                   <div
                     className="notification is-danger"
                     data-cy="PostsLoadingError"

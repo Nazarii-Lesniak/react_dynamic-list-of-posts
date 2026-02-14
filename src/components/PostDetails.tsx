@@ -9,10 +9,21 @@ interface Props {
   post: Post;
 }
 
+interface CommentsState {
+  items: Comment[];
+  isLoading: boolean;
+  hasError: boolean;
+}
+
 export const PostDetails: React.FC<Props> = ({ post }) => {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [hasError, setHasError] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [commentsState, setCommentsState] = useState<CommentsState>({
+    items: [],
+    isLoading: false,
+    hasError: false,
+  });
+
+  const { items: comments, isLoading, hasError } = commentsState;
+
   const [isAddingComment, setIsAddingComment] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -27,7 +38,10 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
         postId: post.id,
       });
 
-      setComments(currentComments => [...currentComments, newComment]);
+      setCommentsState(currentState => ({
+        ...currentState,
+        items: [...currentState.items, newComment],
+      }));
     } catch {
       setActionError('Failed to add comment. Please try again.');
       throw new Error('Failed to add comment');
@@ -35,9 +49,11 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
   };
 
   useEffect(() => {
-    setComments([]);
-    setHasError(false);
-    setIsLoading(true);
+    setCommentsState({
+      items: [],
+      isLoading: true,
+      hasError: false,
+    });
     setIsAddingComment(false);
     setActionError(null);
 
@@ -47,30 +63,40 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
           `/comments?postId=${post.id}`,
         );
 
-        setComments(dataComments);
+        setCommentsState({
+          items: dataComments,
+          isLoading: false,
+          hasError: false,
+        });
       } catch {
-        setHasError(true);
-      } finally {
-        setIsLoading(false);
+        setCommentsState({
+          items: [],
+          isLoading: false,
+          hasError: true,
+        });
       }
     };
 
     fetchComments();
-  }, [post.id]);
+  }, [post.id, setActionError, setIsAddingComment]);
 
   const deleteComment = async (commentId: number) => {
     setActionError(null);
     const previousComments = [...comments];
 
-    setComments(curentComments =>
-      curentComments.filter(comment => comment.id !== commentId),
-    );
+    setCommentsState(currentState => ({
+      ...currentState,
+      items: currentState.items.filter(comment => comment.id !== commentId),
+    }));
 
     try {
       await client.delete(`/comments/${commentId}`);
     } catch {
       setActionError('Failed to delete comment. Please try again.');
-      setComments(previousComments);
+      setCommentsState(currentState => ({
+        ...currentState,
+        items: previousComments,
+      }));
     }
   };
 
