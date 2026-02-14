@@ -25,8 +25,12 @@ interface PostsState {
 export const App = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [hasUsersError, setHasUsersError] = useState<boolean>(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [selection, setSelection] = useState({
+    userId: null as number | null,
+    postId: null as number | null,
+  });
+
+  const { userId: selectedUserId, postId: selectedPostId } = selection;
 
   const [postsState, setPostsState] = useState<PostsState>({
     items: [],
@@ -87,12 +91,17 @@ export const App = () => {
   }, [hasUsersError, selectedUserId]);
 
   const handleUserSelect = (userId: number) => {
-    setSelectedUserId(userId);
-    setSelectedPostId(null);
+    setSelection({
+      userId,
+      postId: null,
+    });
   };
 
   const handlePostSelect = (postId: number | null) => {
-    setSelectedPostId(postId);
+    setSelection(prev => ({
+      ...prev,
+      postId,
+    }));
   };
 
   const shouldShowNoPosts =

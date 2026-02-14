@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 import React, { useState } from 'react';
 import { CommentData } from '../types/Comment';
 
@@ -49,7 +50,7 @@ export const NewCommentForm: React.FC<Props> = ({ onSubmitForm }) => {
     }));
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const normalizedName = name.trim();
@@ -86,20 +87,24 @@ export const NewCommentForm: React.FC<Props> = ({ onSubmitForm }) => {
 
     setIsSubmitting(true);
 
-    onSubmitForm({
-      name: normalizedName,
-      email: normalizedEmail,
-      body: normalizedBody,
-    })
-      .then(() => {
-        setFormState(current => ({
-          ...current,
-          body: '',
-          errors: { name: '', email: '', body: '' },
-        }));
-      })
-      .catch(() => {})
-      .finally(() => setIsSubmitting(false));
+    try {
+      await onSubmitForm({
+        name: normalizedName,
+        email: normalizedEmail,
+        body: normalizedBody,
+      });
+
+      setFormState(current => ({
+        ...current,
+        body: '',
+        errors: { name: '', email: '', body: '' },
+      }));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -226,4 +231,8 @@ export const NewCommentForm: React.FC<Props> = ({ onSubmitForm }) => {
       </div>
     </form>
   );
+};
+
+NewCommentForm.propTypes = {
+  onSubmitForm: PropTypes.func.isRequired,
 };
